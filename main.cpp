@@ -29,27 +29,27 @@ public:
 };
 
 
-class WebServer {
+class FirstServer {
     int m_iPort;
     int m_iListenfd;
 
 
 public:
-    WebServer();
-    ~WebServer();
+    FirstServer();
+    ~FirstServer();
 
     void eventListen();
 };
 
-WebServer::WebServer() {
+FirstServer::FirstServer() {
     m_iPort = 8888;
 }
 
-WebServer::~WebServer() {
+FirstServer::~FirstServer() {
     close(m_iListenfd);
 }
 
-void WebServer::eventListen() {
+void FirstServer::eventListen() {
     // 基本步骤
     m_iListenfd = socket(PF_INET, SOCK_STREAM, 0);
     if(m_iListenfd < 0) {
@@ -102,7 +102,7 @@ void WebServer::eventListen() {
 }
 
 int main(int argc, char* argv[]) {
-    WebServer server;
+    FirstServer server;
     server.eventListen();
 
     return 0;
