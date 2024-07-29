@@ -1,6 +1,0 @@
-/home/acs/repo/firstServer/build/CMakeFiles/firstServer.dir
-/home/acs/repo/firstServer/build/CMakeFiles/edit_cache.dir
-/home/acs/repo/firstServer/build/CMakeFiles/rebuild_cache.dir
-/home/acs/repo/firstServer/build/test/CMakeFiles/ThreadPoolTest.dir
-/home/acs/repo/firstServer/build/test/CMakeFiles/edit_cache.dir
-/home/acs/repo/firstServer/build/test/CMakeFiles/rebuild_cache.dir
