@@ -142,7 +142,7 @@ PenaltyBreakFirstLessLess: 120
 # 在一个字符串字面量中引入换行的penalty
 PenaltyBreakString:	1000
 # 对于每个在行字符数限制之外的字符的penalty
-PenaltyExcessCharacter:	1000000
+PenaltyExcessCharacter:	180
 # 将函数的返回类型放到它自己的行的penalty
 PenaltyReturnTypeOnItsOwnLine: 600
 # 指针和引用的对齐: Left, Right, Middle

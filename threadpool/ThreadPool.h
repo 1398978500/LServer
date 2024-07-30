@@ -4,6 +4,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <functional>
+#include <future>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -19,7 +20,14 @@ public:
     ThreadPool(size_t iNum);
     ~ThreadPool();
 
-    void addTask(TASK task);
+    // void addTask(TASK task);
+
+    // 添加一个新任务
+    template <typename F, typename... Args>
+    void addTask(F&& f, Args&&... args);
+
+    template <typename F, typename T, typename... Args>
+    void addTask(F&& f, T&& t, Args&&... args);
 
 private:
     std::vector<std::thread> m_vecTh;  // 线程
@@ -32,11 +40,27 @@ private:
     std::atomic<bool> m_bStop;  // 是否停止 原子变量
 };
 
-void ThreadPool::addTask(TASK task) {
+template <typename F, typename... Args>
+void ThreadPool::addTask(F&& f, Args&&... args) {
+    auto task = std::bind(std::forward<F>(f), std::forward<Args...>(args)...);
+
     {
         std::unique_lock<std::mutex> lock(this->m_mutex);
         m_queTasks.emplace(task);
     }
+
+    m_cond.notify_one();
+}
+
+template <typename F, typename T, typename... Args>
+void ThreadPool::addTask(F&& f, T&& t, Args&&... args) {
+    auto task = std::bind(std::forward<F>(f), t, std::forward<Args...>(args)...);
+
+    {
+        std::unique_lock<std::mutex> lock(this->m_mutex);
+        m_queTasks.emplace(task);
+    }
+
     m_cond.notify_one();
 }
 
