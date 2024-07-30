@@ -13,5 +13,6 @@ target_link_libraries(${PROJECT_NAME}
     pthread
 )
 
+add_subdirectory(log)
 add_subdirectory(test)
 

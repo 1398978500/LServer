@@ -23,5 +23,6 @@ endfunction()
 
 
 gen_exe("ThreadPoolTest"  "threadpool" "")
+gen_exe("LogTest"  "log" "NanoLog")
 
 
