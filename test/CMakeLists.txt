@@ -6,10 +6,6 @@ function(gen_exe test_name include_name lib_name)
     if(NOT ${include_name} EQUAL "")
         target_include_directories(${test_name}
             PRIVATE ${PROJECT_SOURCE_DIR}/${include_name}
-
-            if(${include_name} EQUAL "queueList")
-                PRIVATE ${PROJECT_SOURCE_DIR}/linkedList
-            endif()
         )
     endif()
 
@@ -26,6 +22,6 @@ function(gen_exe test_name include_name lib_name)
 endfunction()
 
 
-gen_exe("ThreadPoolTest"  "" "")
+gen_exe("ThreadPoolTest"  "threadpool" "")
 
 
