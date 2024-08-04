@@ -22,7 +22,8 @@ function(gen_exe test_name include_name lib_name)
 endfunction()
 
 
-gen_exe("ThreadPoolTest"  "threadpool" "")
-gen_exe("LogTest"  "log" "NanoLog")
+gen_exe("ThreadPoolTest"  "base/threadpool" "")
+gen_exe("LogTest"  "base/log" "NanoLog")
+gen_exe("MySQLTest"  "base/mysql" "MySQLPool")
 
 

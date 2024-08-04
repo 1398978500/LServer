@@ -30,14 +30,14 @@ public:
     void addTask(F&& f, T&& t, Args&&... args);
 
 private:
-    std::vector<std::thread> m_vecTh;  // 线程
+    std::vector<std::thread> m_vecTh; // 线程
 
     // 任务队列
     std::queue<std::function<void()>> m_queTasks;
-    std::mutex m_mutex;              // 任务队列锁
-    std::condition_variable m_cond;  // 条件变量
+    std::mutex m_mutex;             // 任务队列锁
+    std::condition_variable m_cond; // 条件变量
 
-    std::atomic<bool> m_bStop;  // 是否停止 原子变量
+    std::atomic<bool> m_bStop; // 是否停止 原子变量
 };
 
 template <typename F, typename... Args>
