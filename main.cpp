@@ -7,6 +7,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "ThreadPool.h"
+
 using namespace std;
 
 class Client {
@@ -15,6 +17,7 @@ class Client {
     int iSockFd;
 
 public:
+    Client(){}
     Client(int iInSockFd, const struct sockaddr_in& info) {
         char ip[16] = "";
         sprintf(ip, "%s", inet_ntoa(info.sin_addr));
@@ -50,7 +53,9 @@ void addfd(int epollfd, int fd, bool one_shot, int TRIGMode) {
 
     if (one_shot)
         event.events |= EPOLLONESHOT;
-    epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
+    
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event); 
+    // 设置非阻塞
     setnonblocking(fd);
 }
 
@@ -60,15 +65,29 @@ class FirstServer {
 
     int m_iEpollfd;
 
+    ThreadPool m_thdPool;
+
 public:
     FirstServer();
     ~FirstServer();
 
     void eventListen();
+    void run();
+
+    // 客户端连接
+    void dealclient();
+
+    // 读客户端数据
+    void dealwithread(int iCliFd);
+
+    // 发送数据
+    void dealwithwrite();
 };
 
-FirstServer::FirstServer() {
+FirstServer::FirstServer() :m_thdPool(3) {
     m_iPort = 8888;
+    m_iListenfd = 0;
+    m_iEpollfd = 0;
 }
 
 FirstServer::~FirstServer() {
@@ -115,16 +134,22 @@ void FirstServer::eventListen() {
     }
 
     // epoll
-    const int MAX_EVENT_NUMBER = 10000;
-    epoll_event events[MAX_EVENT_NUMBER];
     m_iEpollfd = epoll_create(5);
     if (m_iEpollfd == -1) {
         perror("epoll_create ");
         exit(-1);
     }
     // LT
-    addfd(m_iEpollfd, m_iListenfd, false, 0);
+    addfd(m_iEpollfd, m_iListenfd, false, 0); // 监听fd不能设置EPOLLONESHOT,否则
     addfd(m_iEpollfd, STDIN_FILENO, false, 0);
+}
+
+void FirstServer::run(){
+    
+    const int MAX_EVENT_NUMBER = 10000;
+    epoll_event events[MAX_EVENT_NUMBER];
+
+    cout << "server start ..." << endl;
 
     bool bStop = false;
     //
@@ -139,6 +164,7 @@ void FirstServer::eventListen() {
         for (int i = 0; i < number; i++) {
             int iSockfd = events[i].data.fd;
 
+            // 监听输入
             if (iSockfd == STDIN_FILENO) {
                 char c = 0;
                 cin >> c;
@@ -148,42 +174,62 @@ void FirstServer::eventListen() {
                 }
             } else if (iSockfd == m_iListenfd) {
                 // 新客户端连接
-                // dealclient
+                cout << "有连接来了" << number << endl;
+                auto fAccept = std::bind(&FirstServer::dealclient, this);
+                m_thdPool.addTask(fAccept);
             } else if (events[i].events & EPOLLIN) {
                 // 读取客户端数据
-                // dealwithread
+                auto fRead = std::bind(&FirstServer::dealwithread, this, iSockfd);
+                m_thdPool.addTask(fRead);
             } else if (events[i].events & EPOLLOUT) {
                 // 写数据
                 // dealwithwrite
             }
         }
     }
-
-    // struct sockaddr_in clientAddress;
-    // socklen_t clientAddrLen = sizeof(clientAddress);
-    // cout << "accept ..." << endl;
-    // int iCliFd = accept(m_iListenfd, (struct sockaddr*)&clientAddress, &clientAddrLen);
-    // if (iCliFd < 0) {
-    //     perror("accept error ");
-    //     exit(-1);
-    // }
-
-    // cout << "accept success " << endl;
-    // Client stCli(iCliFd, clientAddress);
-    // stCli.show();
-
-    // char msg[1024];
-    // iRet = read(iCliFd, msg, 1024);
-    // if (iRet > 0) {
-    //     printf("%s\n", msg);
-    // }
-
-    close(m_iListenfd);
 }
+
+// 客户端连接
+void FirstServer::dealclient() {
+    struct sockaddr_in clientAddress;
+    socklen_t clientAddrLen = sizeof(clientAddress);
+
+    int iCliFd = accept(m_iListenfd, (struct sockaddr*)&clientAddress, &clientAddrLen);
+    if (iCliFd < 0) {
+        perror("accept error ");
+        return;
+    }
+
+    cout << "accept success " << endl;
+    Client stCli(iCliFd, clientAddress);
+    stCli.show();
+
+    addfd(m_iEpollfd, iCliFd, true, 0);
+}
+
+// 读客户端数据
+void FirstServer::dealwithread(int iCliFd) {
+    char msg[1024];
+    int iRet = read(iCliFd, msg, 1024);
+    if(iRet == 0) {
+        cout << "iCliFd  close fd = " << iCliFd << endl;
+        close(iCliFd);
+    }
+    else if(iRet < 0) {
+        perror("read : ");
+    }
+    else if (iRet > 0) {
+        printf("%s\n", msg);
+    }
+}
+
+// 发送数据
+void FirstServer::dealwithwrite() {}
 
 int main(int argc, char* argv[]) {
     FirstServer server;
     server.eventListen();
 
+    server.run();
     return 0;
 }

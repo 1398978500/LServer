@@ -6,8 +6,9 @@ add_executable(${PROJECT_NAME} main.cpp) # 生成可执行文件
 
 # set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g3 -Wall")
 
-# target_include_directories(${PROJECT_NAME}
-# )
+target_include_directories(${PROJECT_NAME}
+    PRIVATE ${PROJECT_SOURCE_DIR}/base/threadpool
+)
 
 target_link_libraries(${PROJECT_NAME}
     pthread
