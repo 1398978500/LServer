@@ -8,10 +8,13 @@ add_executable(${PROJECT_NAME} main.cpp) # 生成可执行文件
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE ${PROJECT_SOURCE_DIR}/base/threadpool
+    PRIVATE ${PROJECT_SOURCE_DIR}/base/server
+    PRIVATE ${PROJECT_SOURCE_DIR}/base/util
 )
 
 target_link_libraries(${PROJECT_NAME}
     pthread
+    LServer
 )
 
 add_subdirectory(base)

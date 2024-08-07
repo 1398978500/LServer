@@ -54,7 +54,7 @@ void ThreadPool::addTask(F&& f, Args&&... args) {
 
 template <typename F, typename T, typename... Args>
 void ThreadPool::addTask(F&& f, T&& t, Args&&... args) {
-    auto task = std::bind(std::forward<F>(f), t, std::forward<Args...>(args)...);
+    auto task = std::bind(std::forward<F>(f), std::forward<T>(t), std::forward<Args...>(args)...);
 
     {
         std::unique_lock<std::mutex> lock(this->m_mutex);
@@ -65,6 +65,8 @@ void ThreadPool::addTask(F&& f, T&& t, Args&&... args) {
 }
 
 ThreadPool::ThreadPool(size_t iNum) {
+    m_bStop = false;
+
     if (iNum > MAX_THREAD_NUM) {
         iNum = MAX_THREAD_NUM;
     }
