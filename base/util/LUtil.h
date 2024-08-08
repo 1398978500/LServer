@@ -4,6 +4,8 @@
 enum { MODE_REACTOR = 0, MODE_PROACTOR = 1 };
 enum { TRIG_MODE_LT = 0, TRIG_MODE_ET = 1 };
 
+const int MAX_FD = 65535;
+
 class LUtil {
 public:
     // 设置文件描述符为非阻塞

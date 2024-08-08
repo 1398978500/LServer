@@ -24,12 +24,14 @@ class LServer {
     // reactor/proactor
     int m_iActMode;
 
+    bool m_bStop;
+
 public:
     LServer();
     LServer(int iPort, int iListenMode, int iConnMode, int iThreadPoolNum, int iActMode);
     ~LServer();
 
-    void eventListen();
+    int eventListen();
     void eventLoop();
 
     // 客户端连接

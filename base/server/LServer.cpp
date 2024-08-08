@@ -17,20 +17,27 @@ const int MAX_EVENT_NUMBER = 10000;
 LServer::LServer() : LServer(DEFAULT_PORT, TRIG_MODE_ET, TRIG_MODE_LT, DEFAULT_POOL_NUM, MODE_REACTOR) {}
 
 LServer::LServer(int iPort, int iListenMode, int iConnMode, int iThreadPoolNum, int iActMode)
-    : m_iPort(iPort), m_iListenMode(iListenMode), m_iConnMode(iConnMode), m_thdPool(iThreadPoolNum), m_iActMode(iActMode) {}
+    : m_iPort(iPort), m_iListenMode(iListenMode), m_iConnMode(iConnMode), m_thdPool(iThreadPoolNum), m_iActMode(iActMode) {
+    m_bStop = false;
+
+    int iRet = eventListen();
+    if (iRet != 0) {
+        m_bStop = true;
+    }
+}
 
 LServer::~LServer() {
     close(m_iListenfd);
     close(m_iEpollfd);
 }
 
-void LServer::eventListen() {
+int LServer::eventListen() {
     // 基本步骤
     m_iListenfd = socket(PF_INET, SOCK_STREAM, 0);
     if (m_iListenfd < 0) {
         // cerr << "socket 失败了" << m_iListenfd << endl;
         perror("socket error ");
-        exit(-1);
+        return -1;
     }
 
 #if 0
@@ -54,26 +61,28 @@ void LServer::eventListen() {
     iRet = bind(m_iListenfd, (struct sockaddr*)&address, sizeof(address));
     if (iRet < 0) {
         perror("bind error ");
-        exit(-1);
+        return -1;
     }
 
     iRet = listen(m_iListenfd, 5);
     if (iRet < 0) {
         perror("listen error ");
-        exit(-1);
+        return -1;
     }
 
     // epoll
     m_iEpollfd = epoll_create(5);
     if (m_iEpollfd == -1) {
         perror("epoll_create ");
-        exit(-1);
+        return -1;
     }
 
     // 监听fd不能设置EPOLLONESHOT
     LUtil::addfd(m_iEpollfd, m_iListenfd, false, m_iListenMode, true);
 
     LUtil::addfd(m_iEpollfd, STDIN_FILENO, false, TRIG_MODE_LT, true);
+
+    return 0;
 }
 
 void LServer::eventLoop() {
@@ -81,9 +90,8 @@ void LServer::eventLoop() {
 
     cout << "server start ..." << endl;
 
-    bool bStop = false;
     //
-    while (!bStop) {
+    while (!m_bStop) {
         int number = epoll_wait(m_iEpollfd, events, MAX_EVENT_NUMBER, -1);
         // EINTR 系统调用被中断了/没写成功数据或没读到数据，需要重新尝试
         if (number < 0 && errno != EINTR) {
@@ -100,14 +108,10 @@ void LServer::eventLoop() {
                 cin >> c;
                 cout << c << endl;
                 if (c == 'q') {
-                    bStop = true;
+                    m_bStop = true;
                 }
             } else if (iSockfd == m_iListenfd) {
-                auto fAccept = std::bind(&LServer::dealclient, this);
-
-                cout << "fAccept is nullptr" << endl;
-
-                m_thdPool.addTask(fAccept);
+                dealclient();
             } else if (events[i].events & EPOLLIN) {
                 // 读取客户端数据
                 auto fRead = std::bind(&LServer::dealwithread, this, iSockfd);
@@ -125,17 +129,20 @@ void LServer::dealclient() {
     struct sockaddr_in clientAddress;
     socklen_t clientAddrLen = sizeof(clientAddress);
 
-    int iCliFd = accept(m_iListenfd, (struct sockaddr*)&clientAddress, &clientAddrLen);
-    if (iCliFd < 0) {
-        perror("accept error ");
-        return;
-    }
+    do {
+        int iCliFd = accept(m_iListenfd, (struct sockaddr*)&clientAddress, &clientAddrLen);
+        if (iCliFd < 0) {
+            if (TRIG_MODE_LT == m_iListenMode) {
+                perror("accept error : ");
+            }
+            return;
+        }
+        LClient stCli(iCliFd, clientAddress);
+        stCli.show();
 
-    LClient stCli(iCliFd, clientAddress);
-    stCli.show();
-
-    // 客户端连接设置点对点
-    LUtil::addfd(m_iEpollfd, iCliFd, true, m_iConnMode, true);
+        // 客户端连接设置点对点
+        LUtil::addfd(m_iEpollfd, iCliFd, true, m_iConnMode, true);
+    } while (TRIG_MODE_ET == m_iListenMode); // ET模式需要循环接受连接
 }
 
 // 读客户端数据

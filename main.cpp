@@ -14,8 +14,6 @@ int main(int argc, char* argv[]) {
 
     LServer server(iPort, iListenMode, iConnMode, iThreadPoolNum, iActMode);
 
-    server.eventListen();
-
     server.eventLoop();
 
     return 0;
