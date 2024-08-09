@@ -7,6 +7,7 @@
 #include <string>
 
 #include "ThreadPool.h"
+// #include "LProcess.h"
 
 class LServer {
     // 端口
@@ -35,13 +36,13 @@ public:
     void eventLoop();
 
     // 客户端连接
-    void dealclient();
+    void dealwithaccept();
 
     // 读客户端数据
     void dealwithread(int iCliFd);
 
     // 发送数据
-    void dealwithwrite();
+    void dealwithwrite(int iCliFd);
 };
 
 class LClient {

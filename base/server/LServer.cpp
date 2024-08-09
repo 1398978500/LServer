@@ -111,21 +111,19 @@ void LServer::eventLoop() {
                     m_bStop = true;
                 }
             } else if (iSockfd == m_iListenfd) {
-                dealclient();
+                dealwithaccept();
             } else if (events[i].events & EPOLLIN) {
-                // 读取客户端数据
-                auto fRead = std::bind(&LServer::dealwithread, this, iSockfd);
-                m_thdPool.addTask(fRead);
+                dealwithread(iSockfd); 
             } else if (events[i].events & EPOLLOUT) {
                 // 写数据
-                // dealwithwrite
+                dealwithwrite(iSockfd);
             }
         }
     }
 }
 
 // 客户端连接
-void LServer::dealclient() {
+void LServer::dealwithaccept() {
     struct sockaddr_in clientAddress;
     socklen_t clientAddrLen = sizeof(clientAddress);
 
@@ -160,7 +158,7 @@ void LServer::dealwithread(int iCliFd) {
 }
 
 // 发送数据
-void LServer::dealwithwrite() {}
+void LServer::dealwithwrite(int iCliFd) {}
 
 // 客户端
 LClient::LClient(int iInSockFd, const struct sockaddr_in& info) {
