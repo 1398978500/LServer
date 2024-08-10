@@ -28,7 +28,7 @@ class LServer {
 
     bool m_bStop;
 
-    std::unordered_map<int, LProcess> mUser;
+    std::unordered_map<int, std::shared_ptr<LProcess>> m_mUser;
 
 public:
     LServer();
@@ -46,18 +46,6 @@ public:
 
     // 发送数据
     void dealwithwrite(int iCliFd);
-};
-
-class LClient {
-    std::string szIp;
-    int iPort;
-    int iSockFd;
-
-public:
-    LClient() {}
-    LClient(int iInSockFd, const struct sockaddr_in& info);
-
-    void show();
 };
 
 #endif

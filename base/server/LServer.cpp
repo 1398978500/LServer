@@ -135,51 +135,46 @@ void LServer::dealwithaccept() {
             }
             return;
         }
-        LClient stCli(iCliFd, clientAddress);
-        stCli.show();
+
+        char ip[16] = "";
+        sprintf(ip, "%s", inet_ntoa(clientAddress.sin_addr));
 
         // 客户端连接设置点对点
         LUtil::addfd(m_iEpollfd, iCliFd, true, m_iConnMode, true);
 
-        mUser.emplace(iCliFd, LProcess());
+        m_mUser.emplace(iCliFd, make_shared<LProcess>(string(ip), clientAddress.sin_port, iCliFd, m_iConnMode));
+
+        LOG_INFO << "客户端连接 ip" << string(ip) << " port " << clientAddress.sin_port;
+
     } while (TRIG_MODE_ET == m_iListenMode); // ET模式需要循环接受连接
 }
 
 // 读客户端数据
 void LServer::dealwithread(int iCliFd) {
-    char msg[1024] = "";
-    int iRet = read(iCliFd, msg, 1024);
-
-    if (iRet == 0) {
-        LOG_INFO << "iCliFd  close fd = " << iCliFd;
-
-        auto itUser = mUser.find(iCliFd);
-        if (itUser != mUser.end()) {
-            mUser.erase(itUser);
+    // reactor
+    if (MODE_REACTOR == m_iActMode) {
+        auto itUser = m_mUser.find(iCliFd);
+        if (itUser == m_mUser.end()) {
+            return;
         }
 
-        close(iCliFd);
-    } else if (iRet < 0) {
-        LOG_CRIT << "socket error " << strerror(errno);
-    } else if (iRet > 0) {
-        printf("%s\n", msg);
+        auto& process = itUser->second;
+        auto res = m_thdPool.addTaskWithReturn(std::bind(&LProcess::read, process));
+
+        if (res.valid() && res.get() == 0) {
+            LOG_INFO << "客户端断开连接 ip" << process->m_szIp << " port " << process->m_iPort;
+
+            close(iCliFd);
+            m_mUser.erase(itUser);
+            LUtil::delfd(m_iEpollfd, iCliFd);
+        }
     }
+    // proactor
+    else if (MODE_PROACTOR == m_iActMode) {
+    }
+
+    return;
 }
 
 // 发送数据
 void LServer::dealwithwrite(int iCliFd) {}
-
-// 客户端
-LClient::LClient(int iInSockFd, const struct sockaddr_in& info) {
-    char ip[16] = "";
-    sprintf(ip, "%s", inet_ntoa(info.sin_addr));
-    szIp = string(ip);
-    iPort = info.sin_port;
-    iSockFd = iInSockFd;
-}
-
-void LClient::show() {
-    cout << "client ip =  " << szIp << endl;
-    cout << "client port =  " << iPort << endl;
-    cout << "client Sock fd =  " << iSockFd << endl;
-}

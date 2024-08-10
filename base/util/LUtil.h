@@ -1,7 +1,9 @@
 #ifndef __LUTIL_H__
 #define __LUTIL_H__
 
+// reactor/proactor
 enum { MODE_REACTOR = 0, MODE_PROACTOR = 1 };
+// LT/ET
 enum { TRIG_MODE_LT = 0, TRIG_MODE_ET = 1 };
 
 const int MAX_FD = 65535;
@@ -22,7 +24,7 @@ public:
 
     static bool delfd(int iEpollfd, int iFd);
 
-    static bool ModFd(int iEpollfd, int iFd, unsigned int uiEvents);
+    static bool modfd(int iEpollfd, int iFd, int iEv, bool bOneShot = true, int iTRIGMode = TRIG_MODE_LT, bool bNonBlock = false);
 };
 
 #endif

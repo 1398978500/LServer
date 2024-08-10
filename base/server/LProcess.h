@@ -1,20 +1,28 @@
 #ifndef __LPROCESS_H__
 #define __LPROCESS_H__
 
+#include <string>
+
 class LProcess {
     static const int READ_BUFFER_SIZE = 2048;
     static const int WRITE_BUFFER_SIZE = 1024;
 
 public:
-    LProcess(/* args */);
+    LProcess() = default;
+    LProcess(LProcess&) = default;
+    LProcess(std::string szIp, int iPort, int iSockFd, int iConnMode);
     ~LProcess();
 
-    bool readOnce();
+    int read();
+    void process();
+
+public:
+    std::string m_szIp;
+    int m_iPort;
 
 private:
-    int m_iTrigMode;
-    int m_iActMode;
     int m_iSockFd;
+    int m_iConnMode;
 
     int m_iReadIdx;
     char m_readBuf[READ_BUFFER_SIZE];

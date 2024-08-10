@@ -55,12 +55,31 @@ bool LUtil::delfd(int iEpollfd, int iFd) {
     return 0 == epoll_ctl(iEpollfd, EPOLL_CTL_DEL, iFd, &ev);
 }
 
-bool LUtil::ModFd(int iEpollfd, int iFd, unsigned int  uiEvents) {
+bool LUtil::modfd(int iEpollfd, int iFd, int iEv, bool bOneShot, int iTRIGMode, bool bNonBlock) {
     if (iEpollfd < 0 || iFd < 0) {
         return false;
     }
-    epoll_event ev = {0};
-    ev.data.fd = iFd;
-    ev.events = uiEvents;
-    return 0 == epoll_ctl(iEpollfd, EPOLL_CTL_MOD, iFd, &ev);
+
+    epoll_event event;
+    event.data.fd = iFd;
+
+    event.events = iEv | EPOLLRDHUP;
+    if (TRIG_MODE_ET == iTRIGMode) { // ET
+        event.events |= EPOLLET;
+    }
+
+    if (bOneShot) {
+        event.events |= EPOLLONESHOT;
+    }
+
+    int iRet = epoll_ctl(iEpollfd, EPOLL_CTL_MOD, iFd, &event);
+
+    // 设置非阻塞 listen最好设置成非阻塞
+    // 若阻塞，LT模式下则一个客户端连接可能会唤醒多次epoll_wait,
+    // 导致占用线程，未成功连接的线程会阻塞在accept
+    if (bNonBlock) {
+        setnonblocking(iFd);
+    }
+
+    return (0 == iRet);
 }
