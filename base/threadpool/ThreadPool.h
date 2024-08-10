@@ -22,12 +22,19 @@ public:
 
     // void addTask(TASK task);
 
-    // 添加一个新任务
+    // 添加一个新任务 无返回值
     template <typename F, typename... Args>
     void addTask(F&& f, Args&&... args);
 
     template <typename F, typename T, typename... Args>
     void addTask(F&& f, T&& t, Args&&... args);
+
+    // 有返回值
+    template <typename F, typename... Args>
+    auto addTaskWithReturn(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+
+    template <typename F, typename T, typename... Args>
+    auto addTaskWithReturn(F&& f, T&& t, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
 
 private:
     std::vector<std::thread> m_vecTh; // 线程
@@ -46,7 +53,7 @@ void ThreadPool::addTask(F&& f, Args&&... args) {
 
     {
         std::unique_lock<std::mutex> lock(this->m_mutex);
-        m_queTasks.emplace(task);
+        m_queTasks.emplace([task]() { task(); });
     }
 
     m_cond.notify_one();
@@ -58,10 +65,45 @@ void ThreadPool::addTask(F&& f, T&& t, Args&&... args) {
 
     {
         std::unique_lock<std::mutex> lock(this->m_mutex);
-        m_queTasks.emplace(task);
+        m_queTasks.emplace([task]() { task(); });
     }
 
     m_cond.notify_one();
+}
+
+template <typename F, typename... Args>
+auto ThreadPool::addTaskWithReturn(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
+    using RETURN_TYPE = typename std::result_of<F(Args...)>::type;
+
+    auto task =
+        std::make_shared<std::packaged_task<RETURN_TYPE()>>(std::bind(std::forward<F>(f), std::forward<Args...>(args)...));
+    std::future<RETURN_TYPE> res = task->get_future();
+    {
+        std::unique_lock<std::mutex> lock(this->m_mutex);
+        m_queTasks.emplace([task]() { (*task)(); });
+    }
+
+    m_cond.notify_one();
+
+    return res;
+}
+
+template <typename F, typename T, typename... Args>
+auto ThreadPool::addTaskWithReturn(F&& f, T&& t, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
+    using RETURN_TYPE = typename std::result_of<F(Args...)>::type;
+
+    auto task = std::make_shared<std::packaged_task<RETURN_TYPE()>>(
+        std::bind(std::forward<F>(f), std::forward<T>(t), std::forward<Args...>(args)...));
+    std::future<RETURN_TYPE> res = task->get_future();
+
+    {
+        std::unique_lock<std::mutex> lock(this->m_mutex);
+        m_queTasks.emplace([task]() { (*task)(); });
+    }
+
+    m_cond.notify_one();
+
+    return res;
 }
 
 ThreadPool::ThreadPool(size_t iNum) {

@@ -10,11 +10,13 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE ${PROJECT_SOURCE_DIR}/base/threadpool
     PRIVATE ${PROJECT_SOURCE_DIR}/base/server
     PRIVATE ${PROJECT_SOURCE_DIR}/base/util
+    PRIVATE ${PROJECT_SOURCE_DIR}/base/log
 )
 
 target_link_libraries(${PROJECT_NAME}
     pthread
     LServer
+    NanoLog
 )
 
 add_subdirectory(base)

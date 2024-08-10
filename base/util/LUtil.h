@@ -18,7 +18,11 @@ public:
      *  iTRIGMode: 触发模式 默认TRIG_MODE_LT
      *  bNonBlock: 是否开启非阻塞 默认不开启
      */
-    static void addfd(int iEpollfd, int iFd, bool bOneShot = true, int iTRIGMode = TRIG_MODE_LT, bool bNonBlock = false);
+    static bool addfd(int iEpollfd, int iFd, bool bOneShot = true, int iTRIGMode = TRIG_MODE_LT, bool bNonBlock = false);
+
+    static bool delfd(int iEpollfd, int iFd);
+
+    static bool ModFd(int iEpollfd, int iFd, unsigned int uiEvents);
 };
 
 #endif

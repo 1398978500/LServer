@@ -18,7 +18,11 @@ int LUtil::setnonblocking(int fd) {
  *  iTRIGMode: 触发模式 默认TRIG_MODE_LT
  *  bNonBlock: 是否开启非阻塞 默认不开启
  */
-void LUtil::addfd(int iEpollfd, int iFd, bool bOneShot, int iTRIGMode, bool bNonBlock) {
+bool LUtil::addfd(int iEpollfd, int iFd, bool bOneShot, int iTRIGMode, bool bNonBlock) {
+    if (iEpollfd < 0 || iFd < 0) {
+        return false;
+    }
+
     epoll_event event;
     event.data.fd = iFd;
 
@@ -30,7 +34,7 @@ void LUtil::addfd(int iEpollfd, int iFd, bool bOneShot, int iTRIGMode, bool bNon
     if (bOneShot)
         event.events |= EPOLLONESHOT;
 
-    epoll_ctl(iEpollfd, EPOLL_CTL_ADD, iFd, &event);
+    int iRet = epoll_ctl(iEpollfd, EPOLL_CTL_ADD, iFd, &event);
 
     // 设置非阻塞 listen最好设置成非阻塞
     // 若阻塞，LT模式下则一个客户端连接可能会唤醒多次epoll_wait,
@@ -38,4 +42,25 @@ void LUtil::addfd(int iEpollfd, int iFd, bool bOneShot, int iTRIGMode, bool bNon
     if (bNonBlock) {
         setnonblocking(iFd);
     }
+
+    return (0 == iRet);
+}
+
+bool LUtil::delfd(int iEpollfd, int iFd) {
+    if (iEpollfd < 0 || iFd < 0) {
+        return false;
+    }
+
+    epoll_event ev = {0};
+    return 0 == epoll_ctl(iEpollfd, EPOLL_CTL_DEL, iFd, &ev);
+}
+
+bool LUtil::ModFd(int iEpollfd, int iFd, unsigned int  uiEvents) {
+    if (iEpollfd < 0 || iFd < 0) {
+        return false;
+    }
+    epoll_event ev = {0};
+    ev.data.fd = iFd;
+    ev.events = uiEvents;
+    return 0 == epoll_ctl(iEpollfd, EPOLL_CTL_MOD, iFd, &ev);
 }

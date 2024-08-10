@@ -2,11 +2,14 @@
 
 #include "LServer.h"
 #include "LUtil.h"
+#include "NanoLog.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    int iPort = 8880;
+    initialize(GuaranteedLogger(), "other/", "log", 1);
+
+    int iPort = 8888;
     int iListenMode = TRIG_MODE_ET;
     int iConnMode = TRIG_MODE_LT;
     int iThreadPoolNum = 5;

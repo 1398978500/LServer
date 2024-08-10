@@ -5,6 +5,7 @@
 
 #include "LServer.h"
 #include "LUtil.h"
+#include "NanoLog.h"
 
 using namespace std;
 
@@ -35,8 +36,7 @@ int LServer::eventListen() {
     // 基本步骤
     m_iListenfd = socket(PF_INET, SOCK_STREAM, 0);
     if (m_iListenfd < 0) {
-        // cerr << "socket 失败了" << m_iListenfd << endl;
-        perror("socket error ");
+        LOG_CRIT << "socket error " << strerror(errno);
         return -1;
     }
 
@@ -60,20 +60,20 @@ int LServer::eventListen() {
 
     iRet = bind(m_iListenfd, (struct sockaddr*)&address, sizeof(address));
     if (iRet < 0) {
-        perror("bind error ");
+        LOG_CRIT << "socket error " << strerror(errno);
         return -1;
     }
 
     iRet = listen(m_iListenfd, 5);
     if (iRet < 0) {
-        perror("listen error ");
+        LOG_CRIT << "socket error " << strerror(errno);
         return -1;
     }
 
     // epoll
     m_iEpollfd = epoll_create(5);
     if (m_iEpollfd == -1) {
-        perror("epoll_create ");
+        LOG_CRIT << "socket error " << strerror(errno);
         return -1;
     }
 
@@ -95,7 +95,7 @@ void LServer::eventLoop() {
         int number = epoll_wait(m_iEpollfd, events, MAX_EVENT_NUMBER, -1);
         // EINTR 系统调用被中断了/没写成功数据或没读到数据，需要重新尝试
         if (number < 0 && errno != EINTR) {
-            perror("epoll_wait error ");
+            LOG_CRIT << "socket error " << strerror(errno);
             break;
         }
 
@@ -113,7 +113,7 @@ void LServer::eventLoop() {
             } else if (iSockfd == m_iListenfd) {
                 dealwithaccept();
             } else if (events[i].events & EPOLLIN) {
-                dealwithread(iSockfd); 
+                dealwithread(iSockfd);
             } else if (events[i].events & EPOLLOUT) {
                 // 写数据
                 dealwithwrite(iSockfd);
@@ -131,7 +131,7 @@ void LServer::dealwithaccept() {
         int iCliFd = accept(m_iListenfd, (struct sockaddr*)&clientAddress, &clientAddrLen);
         if (iCliFd < 0) {
             if (TRIG_MODE_LT == m_iListenMode) {
-                perror("accept error : ");
+                LOG_CRIT << "socket error " << strerror(errno);
             }
             return;
         }
@@ -140,18 +140,27 @@ void LServer::dealwithaccept() {
 
         // 客户端连接设置点对点
         LUtil::addfd(m_iEpollfd, iCliFd, true, m_iConnMode, true);
+
+        mUser.emplace(iCliFd, LProcess());
     } while (TRIG_MODE_ET == m_iListenMode); // ET模式需要循环接受连接
 }
 
 // 读客户端数据
 void LServer::dealwithread(int iCliFd) {
-    char msg[1024];
+    char msg[1024] = "";
     int iRet = read(iCliFd, msg, 1024);
+
     if (iRet == 0) {
-        cout << "iCliFd  close fd = " << iCliFd << endl;
+        LOG_INFO << "iCliFd  close fd = " << iCliFd;
+
+        auto itUser = mUser.find(iCliFd);
+        if (itUser != mUser.end()) {
+            mUser.erase(itUser);
+        }
+
         close(iCliFd);
     } else if (iRet < 0) {
-        perror("read : ");
+        LOG_CRIT << "socket error " << strerror(errno);
     } else if (iRet > 0) {
         printf("%s\n", msg);
     }

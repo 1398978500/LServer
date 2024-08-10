@@ -5,9 +5,10 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <string>
+#include <unordered_map>
 
+#include "LProcess.h"
 #include "ThreadPool.h"
-// #include "LProcess.h"
 
 class LServer {
     // 端口
@@ -26,6 +27,8 @@ class LServer {
     int m_iActMode;
 
     bool m_bStop;
+
+    std::unordered_map<int, LProcess> mUser;
 
 public:
     LServer();
